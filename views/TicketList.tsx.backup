@@ -1,0 +1,733 @@
+
+import React, { useState } from 'react';
+import { Search, Filter, Plus, Smartphone, Laptop, Tablet, Box, ChevronRight, CheckCircle2, MoreVertical, X, ClipboardList } from 'lucide-react';
+import { Ticket, TicketStatus, Priority, Customer, Device, User } from '../types';
+import { STATUS_COLORS, PRIORITY_COLORS, DEVICE_TYPES, PROBLEM_TYPES } from '../constants';
+import { getTicketAgeDays, getAgeColorClass, getAgeBgClass, formatDate } from '../utils';
+import { customerApi, deviceApi, ticketApi, timelineApi } from '../services/api';
+
+interface TicketListProps {
+  tickets: Ticket[];
+  customers: Customer[];
+  devices: Device[];
+  onViewTicket: (id: string) => void;
+  setTickets: React.Dispatch<React.SetStateAction<Ticket[]>>;
+  addTimelineEntry: (ticketId: string, action: string, description: string) => void;
+  currentUser: User;
+}
+
+const TicketList: React.FC<TicketListProps> = ({ 
+  tickets, 
+  customers, 
+  devices, 
+  onViewTicket, 
+  setTickets,
+  addTimelineEntry,
+  currentUser
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Filter Logic
+  const filteredTickets = tickets.filter(t => {
+    const customer = customers.find(c => c.id === t.customerId);
+    const device = devices.find(d => d.id === t.deviceId);
+    const matchesSearch = 
+      t.problemType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device?.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device?.imeiOrSerial.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => b.createdAt - a.createdAt);
+
+  const getDeviceIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'celular': return <Smartphone size={16} />;
+      case 'notebook': return <Laptop size={16} />;
+      case 'tablet': return <Tablet size={16} />;
+      default: return <Box size={16} />;
+    }
+  };
+
+  const NewTicketModal = () => {
+    const [step, setStep] = useState(1);
+    const [formData, setFormData] = useState({
+      // Dados do cliente
+      selectedCustomerId: '',
+      customerName: '',
+      customerPhone: '',
+      customerEmail: '',
+      customerCpf: '',
+      customerContactName: '',
+      customerPhoneSecondary: '',
+      customerPhoneSecondaryType: 'CLIENTE',
+      customerPhoneType: 'CLIENTE',
+      customerObservations: '',
+      customerAdditionalNotes: '',
+      // Dados do dispositivo
+      deviceType: DEVICE_TYPES[0],
+      deviceBrand: '',
+      deviceModel: '',
+      deviceImeiOrSerial: '',
+      deviceColor: '',
+      deviceAccessories: '',
+      deviceObservations: '',
+      // Dados da Compra e Garantias
+      purchaseDate: '',
+      warrantyPeriodMonths: '',
+      supplierName: '',
+      stockEntryDate: '',
+      supplierWarrantyMonths: '',
+      // Problema e descrição
+      problemType: PROBLEM_TYPES[0],
+      description: '',
+      priority: Priority.MEDIUM
+    });
+
+    const handleSubmit = async () => {
+      try {
+        let customerId = formData.selectedCustomerId;
+
+        // Se não tiver cliente selecionado, criar novo
+        if (!customerId) {
+          customerId = Math.random().toString(36).substr(2, 9);
+          
+          // Criar cliente na API
+          const customerData = {
+            id: customerId,
+            name: formData.customerName,
+            phone: formData.customerPhone,
+            phoneType: formData.customerPhoneType || 'CLIENTE',
+            contactName: formData.customerContactName,
+            phoneSecondary: formData.customerPhoneSecondary,
+            phoneSecondaryType: formData.customerPhoneSecondaryType || 'CLIENTE',
+            cpf: formData.customerCpf,
+            email: formData.customerEmail,
+            contactObservations: formData.customerObservations,
+            observations: formData.customerAdditionalNotes,
+          };
+          await customerApi.create(customerData);
+        }
+
+        const newDeviceId = Math.random().toString(36).substr(2, 9);
+        const newTicketId = Math.random().toString(36).substr(2, 9);
+
+        // Criar dispositivo na API
+        const deviceData = {
+          id: newDeviceId,
+          customerId: customerId,
+          type: formData.deviceType,
+          brand: formData.deviceBrand,
+          model: formData.deviceModel,
+          imeiOrSerial: formData.deviceImeiOrSerial,
+          color: formData.deviceColor,
+          accessories: formData.deviceAccessories,
+          observations: formData.deviceObservations,
+          // Dados da Compra e Garantias
+          purchaseDate: formData.purchaseDate ? new Date(formData.purchaseDate).getTime() : undefined,
+          warrantyPeriodMonths: formData.warrantyPeriodMonths ? parseInt(formData.warrantyPeriodMonths) : undefined,
+          supplierName: formData.supplierName,
+          stockEntryDate: formData.stockEntryDate ? new Date(formData.stockEntryDate).getTime() : undefined,
+          supplierWarrantyMonths: formData.supplierWarrantyMonths ? parseInt(formData.supplierWarrantyMonths) : undefined,
+        };
+        await deviceApi.create(deviceData);
+
+        // Criar ticket na API
+        const ticketData = {
+          id: newTicketId,
+          customerId: customerId,
+          deviceId: newDeviceId,
+          problemType: formData.problemType,
+          description: formData.description,
+          priority: formData.priority,
+          status: TicketStatus.PENDING,
+          technicianId: currentUser.id,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          attachments: [],
+        };
+        const response = await ticketApi.create(ticketData);
+
+        // Atualizar estado local
+        setTickets(prev => [response.ticket, ...prev]);
+        
+        // Adicionar entrada na timeline
+        await timelineApi.create({
+          id: Math.random().toString(36).substr(2, 9),
+          ticketId: newTicketId,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          action: 'Criação',
+          description: `Ordem de serviço aberta por ${currentUser.name}`,
+          timestamp: Date.now(),
+        });
+
+        setIsModalOpen(false);
+      } catch (err) {
+        console.error('Erro ao criar ticket:', err);
+        alert('Erro ao criar ocorrência. Tente novamente.');
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+            <h2 className="font-bold text-slate-800">Nova Ocorrência</h2>
+            <button onClick={() => setIsModalOpen(false)} className="text-slate-400 p-1 hover:text-slate-600"><X size={20} /></button>
+          </div>
+          
+          <div className="p-6 overflow-y-auto space-y-4">
+            {step === 1 ? (
+              <>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Dados do Cliente</h3>
+                
+                {/* Opção para selecionar cliente existente */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Selecionar Cliente Existente</label>
+                  <select 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={formData.selectedCustomerId || ''}
+                    onChange={e => {
+                      const selectedId = e.target.value;
+                      if (selectedId) {
+                        const customer = customers.find(c => c.id === selectedId);
+                        if (customer) {
+                          setFormData({
+                            ...formData,
+                            selectedCustomerId: selectedId,
+                            customerName: customer.name,
+                            customerPhone: customer.phone,
+                            customerEmail: customer.email,
+                            customerCpf: customer.cpf || '',
+                            customerContactName: customer.contactName || '',
+                            customerPhoneSecondary: customer.phoneSecondary || '',
+                            customerPhoneSecondaryType: customer.phoneSecondaryType || 'CLIENTE',
+                            customerPhoneType: customer.phoneType || 'CLIENTE',
+                            customerObservations: customer.contactObservations || '',
+                            customerAdditionalNotes: customer.observations || ''
+                          });
+                        }
+                      } else {
+                        setFormData({
+                          ...formData,
+                          selectedCustomerId: '',
+                          customerName: '',
+                          customerPhone: '',
+                          customerEmail: '',
+                          customerCpf: '',
+                          customerContactName: '',
+                          customerPhoneSecondary: '',
+                          customerPhoneSecondaryType: 'CLIENTE',
+                          customerPhoneType: 'CLIENTE',
+                          customerObservations: '',
+                          customerAdditionalNotes: ''
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Selecione um cliente...</option>
+                    {customers.map(customer => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name} - {customer.phone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-slate-500">ou</span>
+                  </div>
+                </div>
+                
+                {/* Formulário para criar novo cliente */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Nome Completo *</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                      placeholder="Ex: Maria Oliveira"
+                      value={formData.customerName}
+                      onChange={e => setFormData({...formData, customerName: e.target.value})}
+                      disabled={!!formData.selectedCustomerId}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp *</label>
+                      <input 
+                        type="tel" 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="(00) 00000-0000"
+                        value={formData.customerPhone}
+                        onChange={e => setFormData({...formData, customerPhone: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
+                      <input 
+                        type="email" 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="exemplo@email.com"
+                        value={formData.customerEmail}
+                        onChange={e => setFormData({...formData, customerEmail: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">CPF</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="000.000.000-00"
+                        value={formData.customerCpf}
+                        onChange={e => setFormData({...formData, customerCpf: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Telefone Secundário</label>
+                      <input 
+                        type="tel" 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="(00) 00000-0000"
+                        value={formData.customerPhoneSecondary}
+                        onChange={e => setFormData({...formData, customerPhoneSecondary: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo do WhatsApp</label>
+                      <select 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.customerPhoneType}
+                        onChange={e => setFormData({...formData, customerPhoneType: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      >
+                        <option value="CLIENTE">Cliente</option>
+                        <option value="FAMILIAR">Familiar</option>
+                        <option value="OUTRO">Outro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo do Secundário</label>
+                      <select 
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.customerPhoneSecondaryType}
+                        onChange={e => setFormData({...formData, customerPhoneSecondaryType: e.target.value})}
+                        disabled={!!formData.selectedCustomerId}
+                      >
+                        <option value="CLIENTE">Cliente</option>
+                        <option value="FAMILIAR">Familiar</option>
+                        <option value="OUTRO">Outro</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Nome do Contato</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" 
+                      placeholder="Nome de quem atende"
+                      value={formData.customerContactName}
+                      onChange={e => setFormData({...formData, customerContactName: e.target.value})}
+                      disabled={!!formData.selectedCustomerId}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Observações do Contato</label>
+                    <textarea 
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none" 
+                      placeholder="Ex: preferir ligar à noite, mora com familiar etc."
+                      value={formData.customerObservations}
+                      onChange={e => setFormData({...formData, customerObservations: e.target.value})}
+                      disabled={!!formData.selectedCustomerId}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Observações Adicionais</label>
+                    <textarea 
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none" 
+                      placeholder="Observações gerais sobre o cliente"
+                      value={formData.customerAdditionalNotes}
+                      onChange={e => setFormData({...formData, customerAdditionalNotes: e.target.value})}
+                      disabled={!!formData.selectedCustomerId}
+                    />
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => setStep(2)} 
+                  disabled={!formData.customerName || !formData.customerPhone}
+                  className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  Continuar
+                </button>
+              </>
+            ) : step === 2 ? (
+              <>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Dados do Aparelho</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
+                      value={formData.deviceType}
+                      onChange={e => setFormData({...formData, deviceType: e.target.value})}
+                    >
+                      {DEVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Marca</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: Apple, Samsung"
+                      value={formData.deviceBrand}
+                      onChange={e => setFormData({...formData, deviceBrand: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: iPhone 13 Pro"
+                      value={formData.deviceModel}
+                      onChange={e => setFormData({...formData, deviceModel: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">IMEI/Série</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: 123456789012345"
+                      value={formData.deviceImeiOrSerial}
+                      onChange={e => setFormData({...formData, deviceImeiOrSerial: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cor</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: Preto, Branco"
+                      value={formData.deviceColor}
+                      onChange={e => setFormData({...formData, deviceColor: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Acessórios</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: Carregador, Capinha"
+                      value={formData.deviceAccessories}
+                      onChange={e => setFormData({...formData, deviceAccessories: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Observações</label>
+                  <textarea 
+                    rows={2} 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none resize-none" 
+                    placeholder="Observações adicionais sobre o aparelho"
+                    value={formData.deviceObservations}
+                    onChange={e => setFormData({...formData, deviceObservations: e.target.value})}
+                  />
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <button onClick={() => setStep(1)} className="flex-1 py-4 font-bold text-slate-500">Voltar</button>
+                  <button 
+                    onClick={() => setStep(3)} 
+                    disabled={!formData.deviceType || !formData.deviceModel}
+                    className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-colors disabled:opacity-50"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </>
+            ) : step === 3 ? (
+              <>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Dados da Compra e Garantias</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Data da Compra</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      value={formData.purchaseDate}
+                      onChange={e => setFormData({...formData, purchaseDate: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Prazo Garantia (meses)</label>
+                    <input 
+                      type="number" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: 90 dias = 3 meses"
+                      value={formData.warrantyPeriodMonths}
+                      onChange={e => setFormData({...formData, warrantyPeriodMonths: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Fornecedor</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      placeholder="Ex: Distribuidora ABC"
+                      value={formData.supplierName}
+                      onChange={e => setFormData({...formData, supplierName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Entrada Estoque</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                      value={formData.stockEntryDate}
+                      onChange={e => setFormData({...formData, stockEntryDate: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Garantia Fornecedor (meses)</label>
+                  <input 
+                    type="number" 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" 
+                    placeholder="Ex: 12 meses"
+                    value={formData.supplierWarrantyMonths}
+                    onChange={e => setFormData({...formData, supplierWarrantyMonths: e.target.value})}
+                  />
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <button onClick={() => setStep(2)} className="flex-1 py-4 font-bold text-slate-500">Voltar</button>
+                  <button 
+                    onClick={() => setStep(4)} 
+                    className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-colors"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Problema e Descrição</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Problema</label>
+                    <select 
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
+                      value={formData.problemType}
+                      onChange={e => setFormData({...formData, problemType: e.target.value})}
+                    >
+                      {PROBLEM_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Prioridade</label>
+                  <select 
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
+                    value={formData.priority}
+                    onChange={e => setFormData({...formData, priority: e.target.value as Priority})}
+                  >
+                    {Object.values(Priority).map(p => <option key={p} value={p}>{p}</option>)}</select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Descrição do Problema</label>
+                <textarea 
+                  rows={3} 
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none resize-none" 
+                  placeholder="Relate o que está acontecendo..."
+                  value={formData.description}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button onClick={() => setStep(3)} className="flex-1 py-4 font-bold text-slate-500">Voltar</button>
+                <button 
+                  onClick={handleSubmit} 
+                  className="flex-[2] bg-emerald-600 text-white py-4 rounded-xl font-bold hover:bg-emerald-700 shadow-lg transition-colors"
+                >
+                  Criar Ordem
+                </button>
+              </div>
+            );
+          }
+         
+           return (
+             <div className="space-y-6 animate-view-enter-active pb-10">
+               <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                 <div>
+                   <h1 className="text-2xl font-bold text-slate-800">Ocorrências</h1>
+                   <p className="text-slate-500 text-sm">Gerencie todos os atendimentos ativos</p>
+                 </div>
+                 <button 
+                   onClick={() => setIsModalOpen(true)}
+                   className="bg-blue-600 text-white flex items-center justify-center space-x-2 px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                 >
+                   <Plus size={20} />
+                   <span>Nova Ocorrência</span>
+                 </button>
+               </header>
+         
+               {/* Search and Filter */}
+               <div className="flex flex-col md:flex-row gap-3">
+                 <div className="flex-1 relative">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                   <input 
+                     type="text" 
+                     placeholder="Buscar por cliente, modelo, IMEI..."
+                     className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
+                     value={searchTerm}
+                     onChange={e => setSearchTerm(e.target.value)}
+                   />
+                 </div>
+                 <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-hide">
+                   <button 
+                     onClick={() => setStatusFilter('all')}
+                     className={`whitespace-nowrap px-4 py-2 rounded-lg font-medium text-sm transition-all ${statusFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                   >
+                     Todos
+                   </button>
+                   {Object.values(TicketStatus).map(status => (
+                     <button 
+                       key={status}
+                       onClick={() => setStatusFilter(status)}
+                       className={`whitespace-nowrap px-4 py-2 rounded-lg font-medium text-sm transition-all ${statusFilter === status ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                     >
+                       {status}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+         
+               {/* Ticket Grid */}
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                 {filteredTickets.map(ticket => {
+                   const customer = customers.find(c => c.id === ticket.customerId);
+                   const device = devices.find(d => d.id === ticket.deviceId);
+                   const ageDays = getTicketAgeDays(ticket.createdAt);
+                   
+                   return (
+                     <div 
+                       key={ticket.id} 
+                       onClick={() => onViewTicket(ticket.id)}
+                       className={`bg-white rounded-2xl border transition-all cursor-pointer hover:shadow-xl group relative overflow-hidden flex flex-col ${getAgeBgClass(ageDays)}`}
+                     >
+                       {/* Age Indicator Stripe */}
+                       <div className={`h-1.5 w-full ${ageDays >= 15 ? 'bg-red-500' : ageDays >= 8 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                       
+                       <div className="p-5 flex-1">
+                         <div className="flex justify-between items-start mb-3">
+                           <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_COLORS[ticket.status]}`}>
+                             {ticket.status}
+                           </div>
+                           <div className="text-right">
+                             <p className={`text-xs font-bold ${getAgeColorClass(ageDays)}`}>{ageDays} dias em aberto</p>
+                             <p className="text-[10px] text-slate-400">{formatDate(ticket.createdAt)}</p>
+                           </div>
+                         </div>
+         
+                         <div className="mb-4">
+                           <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition-colors">
+                             {ticket.problemType}: {device?.model || 'Modelo não informado'}
+                           </h3>
+                           <p className="text-sm text-slate-600 flex items-center mt-1">
+                             <span className="font-semibold text-slate-800 mr-2">{customer?.name || 'Cliente Desconhecido'}</span>
+                           </p>
+                         </div>
+         
+                         <div className="flex items-center space-x-4 text-xs text-slate-500 border-t pt-4">
+                           <div className="flex items-center space-x-1.5 bg-slate-100 px-2 py-1 rounded-md">
+                             {getDeviceIcon(device?.type || '')}
+                             <span>{device?.type || 'Aparelho'}</span>
+                           </div>
+                           <div className={`flex items-center space-x-1 font-bold ${PRIORITY_COLORS[ticket.priority]}`}>
+                             <AlertCircle size={14} />
+                             <span>{ticket.priority}</span>
+                           </div>
+                         </div>
+                       </div>
+                       
+                       <div className="px-5 py-3 bg-slate-50 border-t flex items-center justify-between group-hover:bg-blue-50 transition-colors">
+                         <div className="flex items-center space-x-2">
+                           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+                             JD
+                           </div>
+                           <span className="text-xs font-medium text-slate-600">Técnico Responsável</span>
+                         </div>
+                         <ChevronRight className="text-slate-300 group-hover:text-blue-500 transition-all" size={20} />
+                       </div>
+                     </div>
+                   );
+                 })}
+         
+                 {filteredTickets.length === 0 && (
+                   <div className="col-span-full py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                     <ClipboardList size={64} className="mb-4 opacity-20" />
+                     <p className="text-lg font-medium">Nenhuma ocorrência encontrada</p>
+                     <p className="text-sm">Tente ajustar seus filtros de busca</p>
+                   </div>
+                 )}
+               </div>
+         
+               {isModalOpen && <NewTicketModal />}
+             </div>
+           );
+         };
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AlertCircle = ({ size, className }: { size?: number, className?: string }) => (
+  <svg 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
+export default TicketList;

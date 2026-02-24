@@ -1,0 +1,8 @@
+
+{
+  "name": "FixTrack Pro - Gestão Técnica",
+  "description": "Sistema completo para assistência técnica com foco em mobilidade, permitindo controle total de ordens de serviço, clientes, dispositivos e histórico detalhado com linha do tempo.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
