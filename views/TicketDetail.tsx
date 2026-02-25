@@ -63,6 +63,7 @@ import {
   generateAwarenessTermPDF,
   generateWarrantyDeniedTermPDF,
   generateTechnicalSupportReceiptTermPDF,
+  generateOccurrenceSummaryPDF,
 } from '../services/pdf';
 import FileUploader from '../components/FileUploader';
 import FilePreviewModal from '../components/FilePreviewModal';
@@ -433,14 +434,36 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
     }
   };
 
+  const DEFAULT_GUEST_CUSTOMER: any = {
+    id: 'guest',
+    name: 'Cliente Não Informado',
+    phone: 'Não informado',
+    email: 'Não informado',
+    cpf: '',
+    createdAt: Date.now(),
+    phoneType: 'CLIENTE'
+  };
+
+  const activeCustomer = customer || DEFAULT_GUEST_CUSTOMER;
+
   const handleGeneratePDF = () => {
     try {
-      generateServiceOrderPDF(ticket, customer, device, currentUser);
+      generateServiceOrderPDF(ticket, activeCustomer, device, currentUser);
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
       alert('Erro ao gerar ordem de serviço. Tente novamente.');
     }
   };
+
+  const handleGenerateSummaryPDF = () => {
+    try {
+      generateOccurrenceSummaryPDF(ticket, activeCustomer, device, localTimeline);
+    } catch (err) {
+      console.error('Erro ao gerar resumo da ocorrência:', err);
+      alert('Erro ao gerar resumo da ocorrência. Tente novamente.');
+    }
+  };
+
 
   const handleFileUpload = async (urls: string | string[], type: 'attachment' | 'exitVideo' | 'deviceDocumentation' | 'additionalDocuments') => {
     try {
@@ -517,6 +540,13 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
           >
             <FileText size={18} />
             <span className="whitespace-nowrap">Gerar OS</span>
+          </button>
+          <button
+            onClick={handleGenerateSummaryPDF}
+            className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-indigo-700 transition-all"
+          >
+            <History size={18} />
+            <span className="whitespace-nowrap">Resumo Ocorrência</span>
           </button>
           {customer && (
             <button
@@ -1419,7 +1449,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Conserto */}
                     <button
-                      onClick={() => generateRepairTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateRepairTermPDF(ticket, activeCustomer, device, currentUser)}
                       className="flex items-start space-x-4 p-4 bg-blue-50 border border-blue-200 rounded-2xl hover:bg-blue-100 hover:border-blue-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-blue-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1433,7 +1463,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Recebimento em Loja */}
                     <button
-                      onClick={() => generateStoreReceiptTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateStoreReceiptTermPDF(ticket, activeCustomer, device, currentUser)}
                       className="flex items-start space-x-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl hover:bg-emerald-100 hover:border-emerald-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-emerald-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1447,7 +1477,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Recebimento para Suporte Técnico (Novo) */}
                     <button
-                      onClick={() => generateTechnicalSupportReceiptTermPDF(ticket, customer!, device, currentUser)}
+                      onClick={() => generateTechnicalSupportReceiptTermPDF(ticket, activeCustomer, device, currentUser)}
                       disabled={!customer}
                       className="flex items-start space-x-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 hover:border-slate-400 transition-all text-left group"
                     >
@@ -1462,7 +1492,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Entrega ao Cliente */}
                     <button
-                      onClick={() => generateClientDeliveryTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateClientDeliveryTermPDF(ticket, activeCustomer, device, currentUser)}
                       className="flex items-start space-x-4 p-4 bg-teal-50 border border-teal-200 rounded-2xl hover:bg-teal-100 hover:border-teal-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-teal-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1476,7 +1506,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Entrega via Motoboy */}
                     <button
-                      onClick={() => generateMotoboyDeliveryTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateMotoboyDeliveryTermPDF(ticket, activeCustomer, device, currentUser)}
                       className="flex items-start space-x-4 p-4 bg-orange-50 border border-orange-200 rounded-2xl hover:bg-orange-100 hover:border-orange-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-orange-500 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1490,7 +1520,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Troca */}
                     <button
-                      onClick={() => generateSwapTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateSwapTermPDF(ticket, activeCustomer, device, currentUser)}
                       className="flex items-start space-x-4 p-4 bg-purple-50 border border-purple-200 rounded-2xl hover:bg-purple-100 hover:border-purple-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-purple-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1504,7 +1534,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Ciência e Reparo – Garantia Negada */}
                     <button
-                      onClick={() => generateWarrantyDeniedTermPDF(ticket, customer!, device, currentUser)}
+                      onClick={() => generateWarrantyDeniedTermPDF(ticket, activeCustomer, device, currentUser)}
                       disabled={!customer}
                       className="flex items-start space-x-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl hover:bg-rose-100 hover:border-rose-400 transition-all text-left group"
                     >
@@ -1519,7 +1549,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
 
                     {/* Termo de Aparelho Reserva */}
                     <button
-                      onClick={() => generateLoanerDeviceTermPDF(ticket, customer, device, currentUser)}
+                      onClick={() => generateLoanerDeviceTermPDF(ticket, activeCustomer, device, currentUser)}
                       disabled={!device.loanerDevice?.hasLoaner}
                       className={`flex items-start space-x-4 p-4 rounded-2xl border transition-all text-left group ${device.loanerDevice?.hasLoaner
                         ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-400'
@@ -1575,7 +1605,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                               alert('Por favor, digite o texto do termo antes de gerar.');
                               return;
                             }
-                            generateAwarenessTermPDF(ticket, customer!, device, awarenessNarrative, includeRepairOnAwareness);
+                            generateAwarenessTermPDF(ticket, activeCustomer, device, awarenessNarrative, includeRepairOnAwareness);
                           }}
                           disabled={!customer}
                           className="flex items-center space-x-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"

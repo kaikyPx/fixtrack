@@ -262,6 +262,8 @@ const App: React.FC = () => {
           devices={devices}
           onViewTicket={navigateToTicket}
           setTickets={setTickets}
+          setCustomers={setCustomers}
+          setDevices={setDevices}
           addTimelineEntry={addTimelineEntry}
           currentUser={currentUser!}
         />;
@@ -269,6 +271,7 @@ const App: React.FC = () => {
         return <CustomerList
           customers={customers}
           setCustomers={setCustomers}
+          currentUser={currentUser!}
         />;
       case 'ticket-detail':
         const t = tickets.find(ticket => ticket.id === selectedTicketId);

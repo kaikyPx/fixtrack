@@ -12,6 +12,8 @@ interface TicketListProps {
   devices: Device[];
   onViewTicket: (id: string) => void;
   setTickets: React.Dispatch<React.SetStateAction<Ticket[]>>;
+  setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
+  setDevices: React.Dispatch<React.SetStateAction<Device[]>>;
   addTimelineEntry: (ticketId: string, action: string, description: string) => void;
   currentUser: User;
 }
@@ -22,6 +24,8 @@ const TicketList: React.FC<TicketListProps> = ({
   devices,
   onViewTicket,
   setTickets,
+  setCustomers,
+  setDevices,
   addTimelineEntry,
   currentUser
 }) => {
@@ -35,10 +39,10 @@ const TicketList: React.FC<TicketListProps> = ({
     const customer = customers.find(c => c.id === t.customerId);
     const device = devices.find(d => d.id === t.deviceId);
     const matchesSearch =
-      t.problemType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (customer ? customer.name.toLowerCase().includes(searchTerm.toLowerCase()) : 'interno/estoque'.includes(searchTerm.toLowerCase())) ||
-      device?.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device?.imeiOrSerial.toLowerCase().includes(searchTerm.toLowerCase());
+      (t.problemType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer ? (customer.name || '').toLowerCase().includes(searchTerm.toLowerCase()) : 'interno/estoque'.includes(searchTerm.toLowerCase())) ||
+      (device?.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (device?.imeiOrSerial || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const isFinished = t.status === TicketStatus.ENTREGUE || t.status === TicketStatus.CANCELADO;
     const matchesStatus = statusFilter === 'all' ||
@@ -125,6 +129,7 @@ const TicketList: React.FC<TicketListProps> = ({
       stockEntryDate: '',
       supplierWarrantyMonths: '',
       // Problema e descrição
+      problemType: PROBLEM_TYPES[0],
       description: '',
     });
 
@@ -151,7 +156,8 @@ const TicketList: React.FC<TicketListProps> = ({
             contactObservations: formData.customerObservations,
             observations: formData.customerAdditionalNotes,
           };
-          await customerApi.create(customerData);
+          const custRes = await customerApi.create(customerData);
+          setCustomers(prev => [...prev, custRes.customer]);
         }
 
         const effectiveCustomerId = isSimple ? undefined : customerId;
@@ -189,10 +195,10 @@ const TicketList: React.FC<TicketListProps> = ({
             liabilityTerm: formData.deviceLoanerDevice.liabilityTerm,
           },
           mediaFiles: {
-            entryVideoUrl: formData.deviceMediaFiles.entryVideoUrl,
-            exitVideoUrl: formData.deviceMediaFiles.exitVideoUrl,
-            deviceDocumentationUrls: formData.deviceMediaFiles.deviceDocumentationUrls,
-            additionalDocumentsUrls: formData.deviceMediaFiles.additionalDocumentsUrls,
+            entryVideo: formData.deviceMediaFiles.entryVideoUrl,
+            exitVideo: formData.deviceMediaFiles.exitVideoUrl,
+            deviceDocumentation: formData.deviceMediaFiles.deviceDocumentationUrls,
+            additionalDocuments: formData.deviceMediaFiles.additionalDocumentsUrls,
           },
           accessories: formData.deviceAccessories,
           observations: formData.deviceObservations,
@@ -203,7 +209,8 @@ const TicketList: React.FC<TicketListProps> = ({
           stockEntryDate: formData.stockEntryDate ? new Date(formData.stockEntryDate).getTime() : undefined,
           supplierWarrantyMonths: formData.supplierWarrantyMonths ? parseInt(formData.supplierWarrantyMonths) : undefined,
         };
-        await deviceApi.create(deviceData);
+        const devRes = await deviceApi.create(deviceData);
+        setDevices(prev => [...prev, devRes.device]);
 
         // Criar ticket na API
         const ticketData = {

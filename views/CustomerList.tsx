@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Search, Plus, Phone, Mail, ChevronRight, MessageCircle, X, User } from 'lucide-react';
+import { Users, Search, Plus, Phone, Mail, ChevronRight, MessageCircle, X, User, Edit2, Trash2 } from 'lucide-react';
 import { Customer, PhoneType } from '../types';
 import { formatPhone } from '../utils';
 import { customerApi } from '../services/api';
@@ -7,9 +7,10 @@ import { customerApi } from '../services/api';
 interface CustomerListProps {
   customers: Customer[];
   setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
+  currentUser: any; // Using any to avoid complex type import if needed, but App.tsx passes User
 }
 
-const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers }) => {
+const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -24,10 +25,12 @@ const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers }) 
     email: '',
     contactObservations: ''
   });
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone.includes(searchTerm)
+    (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.phone || '').includes(searchTerm)
   );
 
   const handleAdd = async () => {
@@ -52,6 +55,32 @@ const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers }) 
     } catch (err) {
       console.error('Erro ao criar cliente:', err);
       alert('Erro ao cadastrar cliente. Tente novamente.');
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingCustomer || !editingCustomer.name || !editingCustomer.phone) return;
+
+    try {
+      const response = await customerApi.update(editingCustomer.id, editingCustomer);
+      setCustomers(prev => prev.map(c => c.id === editingCustomer.id ? response.customer : c));
+      setIsEditModalOpen(false);
+      setEditingCustomer(null);
+    } catch (err) {
+      console.error('Erro ao atualizar cliente:', err);
+      alert('Erro ao atualizar cliente. Tente novamente.');
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o cliente ${name}?`)) return;
+
+    try {
+      await customerApi.delete(id);
+      setCustomers(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      console.error('Erro ao excluir cliente:', err);
+      alert('Erro ao excluir cliente. Verifique se ele possui dispositivos ou tickets vinculados.');
     }
   };
 
@@ -167,6 +196,29 @@ const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers }) 
                         >
                           <MessageCircle size={18} />
                         </button>
+
+                        {currentUser?.accessLevel === 'ADMIN' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingCustomer(customer);
+                                setIsEditModalOpen(true);
+                              }}
+                              className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                              title="Editar"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(customer.id, customer.name)}
+                              className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                              title="Excluir"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
+
                         <button className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-slate-100 hover:text-slate-600 transition-all shadow-sm">
                           <ChevronRight size={18} />
                         </button>
@@ -335,6 +387,147 @@ const CustomerList: React.FC<CustomerListProps> = ({ customers, setCustomers }) 
                 className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
               >
                 Cadastrar Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && editingCustomer && (
+        <div className="fixed inset-0 bg-slate-900/60 z-[60] flex items-start md:items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-none md:max-h-[90vh] flex flex-col my-auto">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-100 p-2 rounded-xl">
+                  <User className="text-blue-600" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Editar Cliente</h2>
+                  <p className="text-sm text-slate-500">Altere os dados do cliente</p>
+                </div>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nome Completo *</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: Pedro Silva"
+                    value={editingCustomer.name}
+                    onChange={e => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Telefone Principal *</label>
+                    <input
+                      type="tel"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="(00) 00000-0000"
+                      value={editingCustomer.phone}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tipo</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      value={editingCustomer.phoneType}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, phoneType: e.target.value as PhoneType })}
+                    >
+                      <option value={PhoneType.CLIENTE}>Cliente</option>
+                      <option value={PhoneType.FAMILIAR}>Familiar</option>
+                      <option value={PhoneType.OUTRO}>Outro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Telefone Secundario (opcional)</label>
+                    <input
+                      type="tel"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="(00) 00000-0000"
+                      value={editingCustomer.phoneSecondary || ''}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, phoneSecondary: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tipo</label>
+                    <select
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      value={editingCustomer.phoneSecondaryType || PhoneType.CLIENTE}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, phoneSecondaryType: e.target.value as PhoneType })}
+                    >
+                      <option value={PhoneType.CLIENTE}>Cliente</option>
+                      <option value={PhoneType.FAMILIAR}>Familiar</option>
+                      <option value={PhoneType.OUTRO}>Outro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">CPF</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="000.000.000-00"
+                      value={editingCustomer.cpf || ''}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, cpf: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">CEP</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="00000-000"
+                      value={editingCustomer.zipCode || ''}
+                      onChange={e => setEditingCustomer({ ...editingCustomer, zipCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">E-mail (opcional)</label>
+                  <input
+                    type="email"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="email@exemplo.com"
+                    value={editingCustomer.email || ''}
+                    onChange={e => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Observacao de Contato</label>
+                  <textarea
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                    placeholder="Ex: preferir WhatsApp, ligar apos 18h..."
+                    value={editingCustomer.contactObservations || ''}
+                    onChange={e => setEditingCustomer({ ...editingCustomer, contactObservations: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-slate-50">
+              <button
+                onClick={handleUpdate}
+                disabled={!editingCustomer.name || !editingCustomer.phone}
+                className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+              >
+                Salvar Alterações
               </button>
             </div>
           </div>

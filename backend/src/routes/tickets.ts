@@ -68,7 +68,7 @@ router.post('/', async (req, res) => {
 
     await pool.execute(
       'INSERT INTO tickets (id, customer_id, device_id, problem_type, description, priority, status, technician_id, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, customerId, deviceId, problemType, description, priority, status, technicianId || null, deadlineValue]
+      [id ?? null, customerId ?? null, deviceId ?? null, problemType ?? null, description ?? null, priority ?? 'Média', status ?? 'Recebido em loja', technicianId || null, deadlineValue]
     );
 
     res.status(201).json({
@@ -89,7 +89,7 @@ router.put('/:id', async (req, res) => {
 
     await pool.execute(
       'UPDATE tickets SET problem_type = ?, description = ?, priority = ?, status = ?, technician_id = ?, deadline = ? WHERE id = ?',
-      [problemType, description, priority, status, technicianId || null, deadlineValue, req.params.id]
+      [problemType ?? null, description ?? null, priority ?? null, status ?? null, technicianId || null, deadlineValue, req.params.id]
     );
 
     res.json({ message: 'Ticket atualizado com sucesso' });

@@ -3,6 +3,50 @@ import pool from '../config/database.js';
 
 const router = Router();
 
+// GET /api/schedules/today
+router.get('/today', async (req, res) => {
+    try {
+        const [rows] = (await pool.execute(
+            `SELECT 
+        s.id, s.customer_id as customerId, s.ticket_id as ticketId, 
+        s.type, s.method, UNIX_TIMESTAMP(s.scheduled_at) * 1000 as scheduledAt, 
+        s.status, s.observations,
+        c.name as customerName
+      FROM schedules s
+      JOIN customers c ON s.customer_id = c.id
+      WHERE DATE(s.scheduled_at) = CURDATE()
+      ORDER BY s.scheduled_at ASC`
+        )) as [any[], any];
+
+        res.json({ schedules: rows });
+    } catch (error) {
+        console.error('Erro ao buscar agendamentos de hoje:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// GET /api/schedules/upcoming
+router.get('/upcoming', async (req, res) => {
+    try {
+        const [rows] = (await pool.execute(
+            `SELECT 
+        s.id, s.customer_id as customerId, s.ticket_id as ticketId, 
+        s.type, s.method, UNIX_TIMESTAMP(s.scheduled_at) * 1000 as scheduledAt, 
+        s.status, s.observations,
+        c.name as customerName
+      FROM schedules s
+      JOIN customers c ON s.customer_id = c.id
+      WHERE s.scheduled_at >= CURDATE() AND s.status != 'Concluído'
+      ORDER BY s.scheduled_at ASC`
+        )) as [any[], any];
+
+        res.json({ schedules: rows });
+    } catch (error) {
+        console.error('Erro ao buscar próximos agendamentos:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // GET /api/schedules
 router.get('/', async (req, res) => {
     try {

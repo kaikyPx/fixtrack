@@ -87,7 +87,7 @@ export const customerApi = {
       method: 'POST',
       body: JSON.stringify({
         ...customer,
-        id: Math.random().toString(36).substr(2, 9),
+        id: customer.id || Math.random().toString(36).substr(2, 9),
         phoneType: customer.phoneType || 'CLIENTE',
         phoneSecondaryType: customer.phoneSecondaryType || 'CLIENTE'
       }),

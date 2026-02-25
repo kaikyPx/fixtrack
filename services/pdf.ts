@@ -113,8 +113,8 @@ export function generateSwapTermPDF(ticket: Ticket, customer: Customer, device: 
   // 4. Troca Realizada
   y = buildSectionTitle(doc, '4. TROCA REALIZADA', y, margin);
   doc.setFont('helvetica', 'normal');
-  doc.text('Declaramos que o aparelho acima apresentou problema após análise técnica e a loja optou pela troca do produto.', margin, y);
-  y += 10;
+  doc.text('Declaramos que o aparelho acima apresentou problema após análise técnica e a loja optou pela troca do produto.', margin, y, { maxWidth: pageWidth - margin * 2 });
+  y += 12;
 
   // 5. Dados do Aparelho Entregue na Troca
   y = buildSectionTitle(doc, '5. DADOS DO APARELHO ENTREGUE NA TROCA', y, margin);
@@ -126,7 +126,7 @@ export function generateSwapTermPDF(ticket: Ticket, customer: Customer, device: 
   doc.text(`IMEI: ${swap?.imei || '____________________'}`, margin, y); y += 6;
   doc.text(`Data da troca: ${formatDateBR(swap?.date || Date.now())}`, margin, y); y += 10;
 
-  doc.text('Declaro ter recebido o aparelho em perfeitas condições de funcionamento e estética.', margin, y);
+  doc.text('Declaro ter recebido o aparelho em perfeitas condições de funcionamento e estética.', margin, y, { maxWidth: pageWidth - margin * 2 });
   y += 5;
 
   buildStandardSignatureBlock(doc, y, margin, pageWidth);
@@ -224,7 +224,7 @@ export function generateMotoboyDeliveryTermPDF(ticket: Ticket, customer: Custome
   doc.text(`Nome do motoboy: ________________________________________________`, margin, y); y += 10;
 
   doc.setFontSize(9);
-  doc.text('Declaro o recebimento do aparelho em perfeitas condições e sem pendências.', margin, y); y += 5;
+  doc.text('Declaro o recebimento do aparelho em perfeitas condições e sem pendências.', margin, y, { maxWidth: pageWidth - margin * 2 }); y += 7;
   doc.text('Documento apresentado na entrega (RG/CPF): ___________________________', margin, y); y += 10;
 
   buildStandardSignatureBlock(doc, y, margin, pageWidth, 'Assinatura do Cliente / Recebedor', 'Assinatura do Motoboy');
@@ -326,7 +326,7 @@ export function generateRepairTermPDF(ticket: Ticket, customer: Customer, device
   let { y, margin, pageWidth } = buildStoreHeader(doc, 'TERMO DE REPARO / AUTORIZAÇÃO', ticket, customer, device);
 
   doc.setFontSize(10);
-  doc.text('Autorizo a realização dos serviços de reparo no equipamento acima.', margin, y);
+  doc.text('Autorizo a realização dos serviços de reparo no equipamento acima.', margin, y, { maxWidth: pageWidth - margin * 2 });
   y += 10;
 
   y = buildSectionTitle(doc, 'CONDIÇÕES', y, margin);
@@ -394,7 +394,7 @@ export function generateTechnicalSupportReceiptTermPDF(ticket: Ticket, customer:
 
   y = buildSectionTitle(doc, 'DECLARAÇÃO', y, margin);
   doc.setFontSize(9);
-  doc.text('Declaro que estou entregando o aparelho para análise técnica e possível reparo.', margin, y); y += 8;
+  doc.text('Declaro que estou entregando o aparelho para análise técnica e possível reparo.', margin, y, { maxWidth: pageWidth - margin * 2 }); y += 8;
   doc.text('• O sistema não se responsabiliza por dados não salvos.', margin, y); y += 5;
 
   buildStandardSignatureBlock(doc, y, margin, pageWidth);
@@ -414,4 +414,104 @@ export function generateAwarenessTermPDF(ticket: Ticket, customer: Customer, dev
 
   buildStandardSignatureBlock(doc, y, margin, pageWidth);
   doc.save(`Termo_Ciência_OS${ticket.id.slice(0, 8).toUpperCase()}.pdf`);
+}
+
+export function generateOccurrenceSummaryPDF(ticket: Ticket, customer: Customer, device: Device, timeline: TimelineEntry[]) {
+  const doc = new jsPDF();
+  let { y, margin, pageWidth } = buildStoreHeader(doc, 'RESUMO DA OCORRÊNCIA', ticket, customer, device);
+
+  // 1. Dados do Cliente
+  y = buildSectionTitle(doc, '1. DADOS DO CLIENTE', y, margin);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`Nome Completo: ${customer.name}`, margin, y); y += 6;
+  doc.text(`CPF: ${formatCPF(customer.cpf)}`, margin, y); y += 6;
+  doc.text(`Telefone: ${customer.phone}`, margin, y); y += 10;
+
+  // 2. Dados do Aparelho
+  y = buildSectionTitle(doc, '2. DADOS DO APARELHO', y, margin);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Modelo: ${device.brand} ${device.model}`, margin, y); y += 6;
+  doc.text(`Cor: ${device.color || '---'}`, margin, y); y += 6;
+  doc.text(`Capacidade: ${device.storage || '---'}`, margin, y); y += 6;
+  doc.text(`IMEI/Serial: ${device.imeiOrSerial || '---'}`, margin, y); y += 10;
+
+  // 3. Informações da Ordem de Serviço
+  y = buildSectionTitle(doc, '3. INFORMAÇÕES DA O.S.', y, margin);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Status Atual: ${ticket.status}`, margin, y); y += 6;
+  doc.text(`Prioridade: ${ticket.priority}`, margin, y); y += 6;
+  doc.text(`Data de Abertura: ${formatDateBR(ticket.createdAt)}`, margin, y); y += 6;
+  if (ticket.resolvedAt) {
+    doc.text(`Data de Resolução: ${formatDateBR(ticket.resolvedAt)}`, margin, y); y += 6;
+  }
+  y += 4;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Descrição Inicial:', margin, y); y += 5;
+  doc.setFont('helvetica', 'normal');
+  const descSplit = doc.splitTextToSize(ticket.description, pageWidth - margin * 2);
+  doc.text(descSplit, margin, y);
+  y += (descSplit.length * 5) + 10;
+
+  // 4. Histórico de Movimentações (Timeline)
+  y = buildSectionTitle(doc, '4. HISTÓRICO DE MOVIMENTAÇÕES', y, margin);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+
+  if (timeline.length === 0) {
+    doc.text('Nenhuma movimentação registrada.', margin, y);
+    y += 10;
+  } else {
+    // Sort timeline by timestamp ascending for the PDF summary
+    const sortedTimeline = [...timeline].sort((a, b) => a.timestamp - b.timestamp);
+
+    for (const entry of sortedTimeline) {
+      // Check for page break
+      if (y > doc.internal.pageSize.getHeight() - 40) {
+        doc.addPage();
+        y = 30;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      const dateStr = formatDateBR(entry.timestamp);
+      doc.text(`${dateStr} - ${entry.action}`, margin, y);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Por: ${entry.userName}`, margin + 5, y + 5);
+      doc.setTextColor(0, 0, 0);
+
+      const entryContent = entry.description || '(Sem descrição)';
+      const contentSplit = doc.splitTextToSize(entryContent, pageWidth - margin * 2 - 10);
+      doc.text(contentSplit, margin + 5, y + 10);
+
+      y += (contentSplit.length * 5) + 15;
+    }
+  }
+
+  // 5. Conclusão (se houver)
+  if (ticket.resolvedAt || ticket.finalObservations) {
+    if (y > doc.internal.pageSize.getHeight() - 60) {
+      doc.addPage();
+      y = 30;
+    }
+    y = buildSectionTitle(doc, '5. CONCLUSÃO / OBSERVAÇÕES FINAIS', y, margin);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    if (ticket.resolutionResult) {
+      doc.text(`Resultado: ${ticket.resolutionResult}`, margin, y); y += 6;
+    }
+    if (ticket.returnMethod) {
+      doc.text(`Forma de Devolução: ${ticket.returnMethod}`, margin, y); y += 6;
+    }
+    if (ticket.finalObservations) {
+      const finalSplit = doc.splitTextToSize(ticket.finalObservations, pageWidth - margin * 2);
+      doc.text(finalSplit, margin, y);
+      y += (finalSplit.length * 5) + 6;
+    }
+    y += 5;
+  }
+
+  buildStandardSignatureBlock(doc, y, margin, pageWidth);
+  doc.save(`Resumo_Ocorrencia_OS${ticket.id.slice(0, 8).toUpperCase()}.pdf`);
 }
