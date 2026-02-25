@@ -135,27 +135,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void }> = ({ onLogin }) =
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-slate-100">
-          <p className="text-xs text-slate-500 text-center mb-3">Usuários de demonstração:</p>
-          <div className="space-y-2 text-xs text-slate-600">
-            <div className="flex justify-between bg-slate-50 p-2 rounded-lg">
-              <span>admin@fixtrack.com</span>
-              <span className="font-mono text-slate-400">admin123</span>
-            </div>
-            <div className="flex justify-between bg-slate-50 p-2 rounded-lg">
-              <span>gerente@fixtrack.com</span>
-              <span className="font-mono text-slate-400">gerente123</span>
-            </div>
-            <div className="flex justify-between bg-slate-50 p-2 rounded-lg">
-              <span>joao@fixtrack.com</span>
-              <span className="font-mono text-slate-400">joao123</span>
-            </div>
-            <div className="flex justify-between bg-slate-50 p-2 rounded-lg">
-              <span>maria@fixtrack.com</span>
-              <span className="font-mono text-slate-400">maria123</span>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );

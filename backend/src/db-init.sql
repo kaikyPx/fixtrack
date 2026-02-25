@@ -162,9 +162,4 @@ CREATE INDEX idx_financial_date ON financial_transactions(date);
 CREATE INDEX idx_financial_customer ON financial_transactions(customer_id);
 CREATE INDEX idx_financial_ticket ON financial_transactions(ticket_id);
 
--- Inserir usuários de demonstração
-INSERT INTO users (id, name, email, password, access_level) VALUES
-('usr_admin_001', 'Administrador', 'admin@fixtrack.com', 'admin123', 'ADMIN'),
-('usr_manager_001', 'Gerente', 'gerente@fixtrack.com', 'gerente123', 'MANAGER'),
-('usr_tech_001', 'Técnico João', 'joao@fixtrack.com', 'joao123', 'TECHNICIAN'),
-('usr_tech_002', 'Técnica Maria', 'maria@fixtrack.com', 'maria123', 'TECHNICIAN');
+

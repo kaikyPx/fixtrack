@@ -38,8 +38,4 @@ export const PRIORITY_OPTIONS = [
   { value: 'alta', label: 'Alta' }
 ];
 
-export const MOCK_USERS = [
-  { id: 'u1', name: 'Admin Master', email: 'admin@fixtrack.com', accessLevel: AccessLevel.ADMIN },
-  { id: 'u2', name: 'João Técnico', email: 'joao@fixtrack.com', accessLevel: AccessLevel.TECHNICIAN },
-  { id: 'u3', name: 'Maria Gerente', email: 'maria@fixtrack.com', accessLevel: AccessLevel.MANAGER },
-];
+
