@@ -290,6 +290,9 @@ const App: React.FC = () => {
           currentUser={currentUser!}
         />;
       case 'settings':
+        if (currentUser?.accessLevel !== AccessLevel.ADMIN) {
+          return <div className="p-8 text-center text-slate-500">Acesso negado. Esta seção é restrita a administradores.</div>;
+        }
         return <SettingsView />;
       case 'schedules':
         return <ScheduleView
@@ -298,6 +301,9 @@ const App: React.FC = () => {
           currentUser={currentUser!}
         />;
       case 'financial':
+        if (currentUser?.accessLevel !== AccessLevel.ADMIN) {
+          return <div className="p-8 text-center text-slate-500">Acesso negado. Esta seção é restrita a administradores.</div>;
+        }
         return <FinancialView />;
       default:
         return <Dashboard tickets={tickets} onViewTicket={navigateToTicket} />;
@@ -365,9 +371,13 @@ const App: React.FC = () => {
             <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />
             <NavItem view="tickets" icon={ClipboardList} label="Ocorrências" />
             <NavItem view="customers" icon={Users} label="Clientes" />
-            <NavItem view="financial" icon={Wallet} label="Financeiro" />
+            {currentUser?.accessLevel === AccessLevel.ADMIN && (
+              <NavItem view="financial" icon={Wallet} label="Financeiro" />
+            )}
             <NavItem view="schedules" icon={Calendar} label="Agenda" />
-            <NavItem view="settings" icon={Settings} label="Configurações" />
+            {currentUser?.accessLevel === AccessLevel.ADMIN && (
+              <NavItem view="settings" icon={Settings} label="Configurações" />
+            )}
           </nav>
 
           <div className={`pt-6 mt-6 border-t border-white/10 w-full ${isSidebarCollapsed ? 'flex flex-col items-center' : ''}`}>
@@ -420,10 +430,12 @@ const App: React.FC = () => {
           <Calendar size={20} />
           <span className="text-[10px] mt-1 font-medium">Agenda</span>
         </button>
-        <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center shrink-0 ${currentView === 'settings' ? 'text-blue-600' : 'text-slate-400'}`}>
-          <Settings size={20} />
-          <span className="text-[10px] mt-1 font-medium">Config</span>
-        </button>
+        {currentUser?.accessLevel === AccessLevel.ADMIN && (
+          <button onClick={() => setCurrentView('settings')} className={`flex flex-col items-center shrink-0 ${currentView === 'settings' ? 'text-blue-600' : 'text-slate-400'}`}>
+            <Settings size={20} />
+            <span className="text-[10px] mt-1 font-medium">Config</span>
+          </button>
+        )}
       </div>
 
       {/* Overlay for mobile sidebar */}
