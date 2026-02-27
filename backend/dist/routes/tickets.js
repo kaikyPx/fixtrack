@@ -56,7 +56,7 @@ router.post('/', async (req, res) => {
     try {
         const { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline } = req.body;
         const deadlineValue = deadline ? new Date(deadline).toISOString().slice(0, 19).replace('T', ' ') : null;
-        await pool.execute('INSERT INTO tickets (id, customer_id, device_id, problem_type, description, priority, status, technician_id, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [id, customerId, deviceId, problemType, description, priority, status, technicianId || null, deadlineValue]);
+        await pool.execute('INSERT INTO tickets (id, customer_id, device_id, problem_type, description, priority, status, technician_id, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [id ?? null, customerId ?? null, deviceId ?? null, problemType ?? null, description ?? null, priority ?? 'Média', status ?? 'Recebido em loja', technicianId || null, deadlineValue]);
         res.status(201).json({
             ticket: { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline, createdAt: Date.now(), updatedAt: Date.now(), attachments: [] }
         });
@@ -71,7 +71,7 @@ router.put('/:id', async (req, res) => {
     try {
         const { problemType, description, priority, status, technicianId, deadline } = req.body;
         const deadlineValue = deadline ? new Date(deadline).toISOString().slice(0, 19).replace('T', ' ') : null;
-        await pool.execute('UPDATE tickets SET problem_type = ?, description = ?, priority = ?, status = ?, technician_id = ?, deadline = ? WHERE id = ?', [problemType, description, priority, status, technicianId || null, deadlineValue, req.params.id]);
+        await pool.execute('UPDATE tickets SET problem_type = ?, description = ?, priority = ?, status = ?, technician_id = ?, deadline = ? WHERE id = ?', [problemType ?? null, description ?? null, priority ?? null, status ?? null, technicianId || null, deadlineValue, req.params.id]);
         res.json({ message: 'Ticket atualizado com sucesso' });
     }
     catch (error) {

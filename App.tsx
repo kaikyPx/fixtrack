@@ -301,8 +301,8 @@ const App: React.FC = () => {
           currentUser={currentUser!}
         />;
       case 'financial':
-        if (currentUser?.accessLevel !== AccessLevel.ADMIN) {
-          return <div className="p-8 text-center text-slate-500">Acesso negado. Esta seção é restrita a administradores.</div>;
+        if (currentUser?.accessLevel !== AccessLevel.ADMIN && currentUser?.accessLevel !== AccessLevel.MANAGER) {
+          return <div className="p-8 text-center text-slate-500">Acesso negado. Esta seção é restrita a administradores e gerentes.</div>;
         }
         return <FinancialView />;
       default:
@@ -371,7 +371,7 @@ const App: React.FC = () => {
             <NavItem view="dashboard" icon={LayoutDashboard} label="Dashboard" />
             <NavItem view="tickets" icon={ClipboardList} label="Ocorrências" />
             <NavItem view="customers" icon={Users} label="Clientes" />
-            {currentUser?.accessLevel === AccessLevel.ADMIN && (
+            {(currentUser?.accessLevel === AccessLevel.ADMIN || currentUser?.accessLevel === AccessLevel.MANAGER) && (
               <NavItem view="financial" icon={Wallet} label="Financeiro" />
             )}
             <NavItem view="schedules" icon={Calendar} label="Agenda" />

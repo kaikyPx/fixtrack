@@ -89,7 +89,7 @@ router.post('/', async (req, res) => {
         entry_video_url, exit_video_url, device_documentation_urls, additional_documents_urls,
         accessories, observations, purchase_date, warranty_period_months, warranty_end_date,
         supplier_id, supplier_name, stock_entry_date, supplier_warranty_months, supplier_warranty_end_date) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [id, customerId, type, brand, model, imeiOrSerial || null, color || null, storage || null, serialNumber || null,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [id ?? null, customerId ?? null, type ?? null, brand ?? null, model ?? null, imeiOrSerial || null, color || null, storage || null, serialNumber || null,
             screenPassword || null, batteryHealth || null, isReturn ?? false,
             conditionOnArrival?.screenOk ?? null, conditionOnArrival?.caseOk ?? null, conditionOnArrival?.cameraOk ?? null,
             conditionOnArrival?.impactSigns ?? null, conditionOnArrival?.liquidDamageSigns ?? null,
@@ -102,9 +102,9 @@ router.post('/', async (req, res) => {
             mediaFiles?.deviceDocumentation ? JSON.stringify(mediaFiles.deviceDocumentation) : null,
             mediaFiles?.additionalDocuments ? JSON.stringify(mediaFiles.additionalDocuments) : null,
             accessories || null, observations || null,
-            purchaseDate ? new Date(purchaseDate) : null, warrantyPeriodMonths || null, warrantyEndDate ? new Date(warrantyEndDate) : null,
+            purchaseDate ? new Date(purchaseDate) : null, warrantyPeriodMonths ?? null, warrantyEndDate ? new Date(warrantyEndDate) : null,
             supplierId || null, supplierName || null, stockEntryDate ? new Date(stockEntryDate) : null,
-            supplierWarrantyMonths || null, supplierWarrantyEndDate ? new Date(supplierWarrantyEndDate) : null]);
+            supplierWarrantyMonths ?? null, supplierWarrantyEndDate ? new Date(supplierWarrantyEndDate) : null]);
         res.status(201).json({
             device: {
                 id, customerId, type, brand, model, imeiOrSerial, color, storage, serialNumber, screenPassword, batteryHealth, isReturn, accessories, observations,
@@ -130,7 +130,7 @@ router.put('/:id', async (req, res) => {
         entry_video_url = ?, exit_video_url = ?, device_documentation_urls = ?, additional_documents_urls = ?,
         accessories = ?, observations = ?, purchase_date = ?, warranty_period_months = ?, warranty_end_date = ?,
         supplier_id = ?, supplier_name = ?, stock_entry_date = ?, supplier_warranty_months = ?, supplier_warranty_end_date = ?
-       WHERE id = ?`, [type, brand, model, imeiOrSerial || null, color || null, storage || null, serialNumber || null,
+       WHERE id = ?`, [type ?? null, brand ?? null, model ?? null, imeiOrSerial || null, color || null, storage || null, serialNumber || null,
             screenPassword || null, batteryHealth || null, isReturn ?? false,
             conditionOnArrival?.screenOk || null, conditionOnArrival?.caseOk || null, conditionOnArrival?.cameraOk || null,
             conditionOnArrival?.impactSigns || null, conditionOnArrival?.liquidDamageSigns || null,
@@ -143,9 +143,9 @@ router.put('/:id', async (req, res) => {
             mediaFiles?.deviceDocumentation ? JSON.stringify(mediaFiles.deviceDocumentation) : null,
             mediaFiles?.additionalDocuments ? JSON.stringify(mediaFiles.additionalDocuments) : null,
             accessories || null, observations || null,
-            purchaseDate ? new Date(purchaseDate) : null, warrantyPeriodMonths || null, warrantyEndDate ? new Date(warrantyEndDate) : null,
+            purchaseDate ? new Date(purchaseDate) : null, warrantyPeriodMonths ?? null, warrantyEndDate ? new Date(warrantyEndDate) : null,
             supplierId || null, supplierName || null, stockEntryDate ? new Date(stockEntryDate) : null,
-            supplierWarrantyMonths || null, supplierWarrantyEndDate ? new Date(supplierWarrantyEndDate) : null, req.params.id]);
+            supplierWarrantyMonths ?? null, supplierWarrantyEndDate ? new Date(supplierWarrantyEndDate) : null, req.params.id]);
         res.json({ message: 'Dispositivo atualizado com sucesso' });
     }
     catch (error) {

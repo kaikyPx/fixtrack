@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { Ticket, Customer, Device, User } from '../types';
+import { Ticket, Customer, Device, User, TimelineEntry } from '../types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -434,7 +434,8 @@ export function generateOccurrenceSummaryPDF(ticket: Ticket, customer: Customer,
   doc.text(`Modelo: ${device.brand} ${device.model}`, margin, y); y += 6;
   doc.text(`Cor: ${device.color || '---'}`, margin, y); y += 6;
   doc.text(`Capacidade: ${device.storage || '---'}`, margin, y); y += 6;
-  doc.text(`IMEI/Serial: ${device.imeiOrSerial || '---'}`, margin, y); y += 10;
+  doc.text(`IMEI/Serial: ${device.imeiOrSerial || '---'}`, margin, y); y += 6;
+  doc.text(`Senha da Tela: ${device.screenPassword || 'Não informada'}`, margin, y); y += 10;
 
   // 3. Informações da Ordem de Serviço
   y = buildSectionTitle(doc, '3. INFORMAÇÕES DA O.S.', y, margin);

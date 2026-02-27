@@ -50,7 +50,8 @@ import {
   deviceApi,
   authApi, // Keeping authApi as it was not explicitly removed by the user's provided snippet, only userApi was added. Assuming userApi is a new addition, not a replacement for authApi unless specified.
   uploadApi,
-  customerApi
+  customerApi,
+  getFileUrl
 } from '../services/api';
 import {
   generateServiceOrderPDF, // Kept from original, but user also provided a new path for it
@@ -465,7 +466,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
   };
 
 
-  const handleFileUpload = async (urls: string | string[], type: 'attachment' | 'exitVideo' | 'deviceDocumentation' | 'additionalDocuments') => {
+  const handleFileUpload = async (urls: string | string[], type: 'attachment' | 'entryVideo' | 'exitVideo' | 'deviceDocumentation' | 'additionalDocuments') => {
     try {
       if (type === 'attachment') {
         const urlList = Array.isArray(urls) ? urls : [urls];
@@ -927,7 +928,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                           {/* Timeline Attachment */}
                           {entry.attachmentUrl && (
                             <div className="mt-3 flex items-center p-3 bg-slate-50 rounded-xl border border-slate-200 group/att cursor-pointer hover:bg-slate-100 transition-all max-w-sm"
-                              onClick={() => handlePreviewFile(entry.attachmentUrl!, entry.attachmentName || 'Anexo')}>
+                              onClick={() => handlePreviewFile(getFileUrl(entry.attachmentUrl!), entry.attachmentName || 'Anexo')}>
                               <div className="p-2 bg-white rounded-lg border border-slate-200 text-slate-400 group-hover/att:text-blue-600 transition-colors">
                                 <Paperclip size={16} />
                               </div>
@@ -1009,11 +1010,11 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                         {ticket.attachments.slice(0, 6).map(file => (
                           <div
                             key={file.id}
-                            onClick={() => handlePreviewFile(file.url, file.name)}
+                            onClick={() => handlePreviewFile(getFileUrl(file.url), file.name)}
                             className="shrink-0 w-24 h-24 relative rounded-xl border border-slate-200 overflow-hidden bg-slate-50 group cursor-pointer hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
                           >
                             {file.url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                              <img src={file.url} alt={file.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                              <img src={getFileUrl(file.url)} alt={file.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                 <FileText size={24} className="text-slate-400 mb-2 group-hover:text-blue-500 transition-colors" />
@@ -1314,7 +1315,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                       {ticket.attachments.map(file => (
                         <div key={file.id} className="group relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50 aspect-square shadow-sm hover:shadow-md transition-all">
                           {file.url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                            <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                            <img src={getFileUrl(file.url)} alt={file.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-4">
                               <FileText size={24} className="text-slate-400 mb-2" />
@@ -1323,13 +1324,13 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                           )}
                           <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
                             <button
-                              onClick={() => handlePreviewFile(file.url, file.name)}
+                              onClick={() => handlePreviewFile(getFileUrl(file.url), file.name)}
                               className="p-2 bg-white rounded-xl text-slate-800 hover:bg-blue-50 transition-colors shadow-lg"
                               title="Visualizar"
                             >
                               <ExternalLink size={16} />
                             </button>
-                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-xl text-slate-800 hover:bg-emerald-50 transition-colors shadow-lg" title="Baixar">
+                            <a href={getFileUrl(file.url)} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-xl text-slate-800 hover:bg-emerald-50 transition-colors shadow-lg" title="Baixar">
                               <Download size={16} />
                             </a>
                           </div>
@@ -1349,7 +1350,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                       {localTimeline.filter(e => e.attachmentUrl).map(entry => (
                         <div key={entry.id} className="group relative rounded-2xl border border-blue-100 overflow-hidden bg-blue-50/30 aspect-square shadow-sm hover:shadow-md transition-all">
                           {entry.attachmentUrl!.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                            <img src={entry.attachmentUrl} alt={entry.attachmentName} className="w-full h-full object-cover" />
+                            <img src={getFileUrl(entry.attachmentUrl!)} alt={entry.attachmentName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-4">
                               <Paperclip size={24} className="text-blue-400 mb-2" />
@@ -1361,7 +1362,7 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                           </div>
                           <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
                             <button
-                              onClick={() => handlePreviewFile(entry.attachmentUrl!, entry.attachmentName || 'Anexo')}
+                              onClick={() => handlePreviewFile(getFileUrl(entry.attachmentUrl!), entry.attachmentName || 'Anexo')}
                               className="p-2 bg-white rounded-xl text-slate-800 hover:bg-blue-50 transition-colors"
                               title="Visualizar"
                             >
@@ -1375,7 +1376,38 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                 )}
 
                 {/* Videos & Docs Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t pt-8">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Video size={16} /> Vídeo de Entrada (Check-in)
+                    </h3>
+                    <FileUploader
+                      label="Upload do Vídeo de Entrada"
+                      accept="video/*"
+                      type="video"
+                      onUploadComplete={(url) => handleFileUpload(url as string, 'entryVideo')}
+                    />
+                    {device.mediaFiles?.entryVideo && (
+                      <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-emerald-500 text-white rounded-lg">
+                            <Video size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-emerald-800">Vídeo Presente</p>
+                            <p className="text-[10px] text-emerald-600 uppercase font-bold">Arquivo salvo</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handlePreviewFile(getFileUrl(device.mediaFiles!.entryVideo!), 'Vídeo de Entrada')}
+                          className="px-3 py-1.5 bg-white text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm"
+                        >
+                          Visualizar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <Video size={16} /> Vídeo de Saída (Check-out)
@@ -1386,20 +1418,20 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                       type="video"
                       onUploadComplete={(url) => handleFileUpload(url as string, 'exitVideo')}
                     />
-                    {device.mediaFiles?.exitVideoUrl && (
+                    {device.mediaFiles?.exitVideo && (
                       <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between shadow-sm">
                         <div className="flex items-center space-x-3">
                           <div className="p-2 bg-emerald-500 text-white rounded-lg">
                             <Video size={16} />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-emerald-800">Vídeo de Check-out Presente</p>
-                            <p className="text-[10px] text-emerald-600 uppercase font-bold">Arquivo verificado</p>
+                            <p className="text-xs font-bold text-emerald-800">Vídeo Presente</p>
+                            <p className="text-[10px] text-emerald-600 uppercase font-bold">Arquivo salvo</p>
                           </div>
                         </div>
                         <button
-                          onClick={() => handlePreviewFile(device.mediaFiles.exitVideoUrl, 'Vídeo de Saída')}
-                          className="px-3 py-1.5 bg-white text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all"
+                          onClick={() => handlePreviewFile(getFileUrl(device.mediaFiles!.exitVideo!), 'Vídeo de Saída')}
+                          className="px-3 py-1.5 bg-white text-emerald-600 text-[10px] font-bold rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm"
                         >
                           Visualizar
                         </button>
@@ -1417,14 +1449,14 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                         multiple
                         onUploadComplete={(urls) => handleFileUpload(urls, 'deviceDocumentation')}
                       />
-                      {(device.mediaFiles?.deviceDocumentationUrls?.length > 0 || device.mediaFiles?.additionalDocumentsUrls?.length > 0) && (
+                      {(device.mediaFiles?.deviceDocumentation?.length > 0 || device.mediaFiles?.additionalDocuments?.length > 0) && (
                         <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
                           <p className="text-xs font-bold text-blue-800 mb-2">Arquivos vinculados ao aparelho:</p>
                           <div className="flex flex-wrap gap-2">
-                            {[...(device.mediaFiles?.deviceDocumentationUrls || []), ...(device.mediaFiles?.additionalDocumentsUrls || [])].map((url, i) => (
+                            {[...(device.mediaFiles?.deviceDocumentation || []), ...(device.mediaFiles?.additionalDocuments || [])].map((url, i) => (
                               <button
                                 key={i}
-                                onClick={() => handlePreviewFile(url, `Doc ${i + 1}`)}
+                                onClick={() => handlePreviewFile(getFileUrl(url), `Doc ${i + 1}`)}
                                 className="px-2 py-1 bg-white text-[10px] font-bold text-blue-600 rounded-lg border border-blue-200 hover:bg-blue-50"
                               >
                                 Doc {i + 1}

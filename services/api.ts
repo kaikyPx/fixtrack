@@ -26,6 +26,13 @@ const getApiUrl = () => {
 
 const API_BASE_URL = getApiUrl();
 
+export const getFileUrl = (path: string) => {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('data:')) return path; // Já é absoluto, externo ou base64
+  const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 // Helper para requisições HTTP
 async function fetchApi<T>(
   endpoint: string,

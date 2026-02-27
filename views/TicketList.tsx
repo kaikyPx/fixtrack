@@ -44,7 +44,7 @@ const TicketList: React.FC<TicketListProps> = ({
       (device?.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (device?.imeiOrSerial || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const isFinished = t.status === TicketStatus.ENTREGUE || t.status === TicketStatus.CANCELADO;
+    const isFinished = t.status === TicketStatus.ENTREGUE || t.status === TicketStatus.CANCELADO || t.status === TicketStatus.PRONTO;
     const matchesStatus = statusFilter === 'all' ||
       (statusFilter === 'pendentes' && !isFinished) ||
       (statusFilter === 'finalizados' && isFinished);
