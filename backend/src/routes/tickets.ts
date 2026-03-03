@@ -22,7 +22,14 @@ router.get('/', async (req, res) => {
       ORDER BY t.created_at DESC`
     )) as [any[], any];
 
-    const tickets = rows.map(t => ({ ...t, attachments: [] }));
+    const [attRows] = await pool.execute('SELECT id, ticket_id as ticketId, name, type, url, UNIX_TIMESTAMP(timestamp) * 1000 as timestamp FROM attachments');
+    const allAttachments = attRows as any[];
+
+    const tickets = rows.map(t => ({
+      ...t,
+      attachments: allAttachments.filter(a => a.ticketId === t.id)
+    }));
+
     res.json({ tickets });
   } catch (error) {
     console.error('Erro ao buscar tickets:', error);
@@ -52,7 +59,13 @@ router.get('/:id', async (req, res) => {
     if (tickets.length === 0) {
       return res.status(404).json({ error: 'Ticket não encontrado' });
     }
-    res.json({ ticket: { ...tickets[0], attachments: [] } });
+
+    const [attRows] = await pool.execute(
+      'SELECT id, ticket_id as ticketId, name, type, url, UNIX_TIMESTAMP(timestamp) * 1000 as timestamp FROM attachments WHERE ticket_id = ?',
+      [req.params.id]
+    );
+
+    res.json({ ticket: { ...tickets[0], attachments: attRows } });
   } catch (error) {
     console.error('Erro ao buscar ticket:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -62,7 +75,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/tickets
 router.post('/', async (req, res) => {
   try {
-    const { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline } = req.body;
+    const { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline, attachments } = req.body;
 
     const deadlineValue = deadline ? new Date(deadline).toISOString().slice(0, 19).replace('T', ' ') : null;
 
@@ -71,8 +84,17 @@ router.post('/', async (req, res) => {
       [id ?? null, customerId ?? null, deviceId ?? null, problemType ?? null, description ?? null, priority ?? 'Média', status ?? 'Recebido em loja', technicianId || null, deadlineValue]
     );
 
+    if (attachments && Array.isArray(attachments)) {
+      for (const att of attachments) {
+        await pool.execute(
+          'INSERT INTO attachments (id, ticket_id, name, type, url) VALUES (?, ?, ?, ?, ?)',
+          [att.id || `att_${Date.now()}_${Math.floor(Math.random() * 1000)}`, id, att.name, att.type || 'application/octet-stream', att.url]
+        );
+      }
+    }
+
     res.status(201).json({
-      ticket: { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline, createdAt: Date.now(), updatedAt: Date.now(), attachments: [] }
+      ticket: { id, customerId, deviceId, problemType, description, priority, status, technicianId, deadline, createdAt: Date.now(), updatedAt: Date.now(), attachments: attachments || [] }
     });
   } catch (error) {
     console.error('Erro ao criar ticket:', error);
@@ -83,7 +105,7 @@ router.post('/', async (req, res) => {
 // PUT /api/tickets/:id
 router.put('/:id', async (req, res) => {
   try {
-    const { problemType, description, priority, status, technicianId, deadline } = req.body;
+    const { problemType, description, priority, status, technicianId, deadline, attachments } = req.body;
 
     const deadlineValue = deadline ? new Date(deadline).toISOString().slice(0, 19).replace('T', ' ') : null;
 
@@ -91,6 +113,16 @@ router.put('/:id', async (req, res) => {
       'UPDATE tickets SET problem_type = ?, description = ?, priority = ?, status = ?, technician_id = ?, deadline = ? WHERE id = ?',
       [problemType ?? null, description ?? null, priority ?? null, status ?? null, technicianId || null, deadlineValue, req.params.id]
     );
+
+    if (attachments && Array.isArray(attachments)) {
+      await pool.execute('DELETE FROM attachments WHERE ticket_id = ?', [req.params.id]);
+      for (const att of attachments) {
+        await pool.execute(
+          'INSERT INTO attachments (id, ticket_id, name, type, url) VALUES (?, ?, ?, ?, ?)',
+          [att.id || `att_${Date.now()}_${Math.floor(Math.random() * 1000)}`, req.params.id, att.name, att.type || 'application/octet-stream', att.url]
+        );
+      }
+    }
 
     res.json({ message: 'Ticket atualizado com sucesso' });
   } catch (error) {

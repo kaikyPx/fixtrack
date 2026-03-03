@@ -491,9 +491,9 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
           ...device,
           mediaFiles: {
             ...device.mediaFiles,
-            ...(type === 'exitVideo' ? { exitVideoUrl: urls as string } : {}),
-            ...(type === 'deviceDocumentation' ? { deviceDocumentationUrls: urls as string[] } : {}),
-            ...(type === 'additionalDocuments' ? { additionalDocumentsUrls: urls as string[] } : {}),
+            ...(type === 'exitVideo' ? { exitVideo: urls as string } : {}),
+            ...(type === 'deviceDocumentation' ? { deviceDocumentation: urls as string[] } : {}),
+            ...(type === 'additionalDocuments' ? { additionalDocuments: urls as string[] } : {}),
           }
         };
         await deviceApi.update(device.id, updatedDevice);
@@ -1510,7 +1510,6 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                     {/* Termo de Recebimento para Suporte Técnico (Novo) */}
                     <button
                       onClick={() => generateTechnicalSupportReceiptTermPDF(ticket, activeCustomer, device, currentUser)}
-                      disabled={!customer}
                       className="flex items-start space-x-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-slate-100 hover:border-slate-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-slate-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">
@@ -1567,7 +1566,6 @@ const TicketDetail: React.FC<TicketDetailProps> = ({
                     {/* Termo de Ciência e Reparo – Garantia Negada */}
                     <button
                       onClick={() => generateWarrantyDeniedTermPDF(ticket, activeCustomer, device, currentUser)}
-                      disabled={!customer}
                       className="flex items-start space-x-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl hover:bg-rose-100 hover:border-rose-400 transition-all text-left group"
                     >
                       <div className="p-2.5 bg-rose-600 text-white rounded-xl group-hover:scale-105 transition-transform shrink-0">

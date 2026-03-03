@@ -3,6 +3,58 @@ import pool from '../config/database.js';
 
 const router = Router();
 
+const mapDeviceRow = (row: any) => ({
+  id: row.id,
+  customerId: row.customerId,
+  type: row.type,
+  brand: row.brand,
+  model: row.model,
+  imeiOrSerial: row.imeiOrSerial,
+  color: row.color,
+  storage: row.storage,
+  serialNumber: row.serialNumber,
+  screenPassword: row.screenPassword,
+  batteryHealth: row.batteryHealth,
+  isReturn: !!row.isReturn,
+  conditionOnArrival: {
+    screenOk: row.conditionScreenOk === 1 || row.conditionScreenOk === true,
+    caseOk: row.conditionCaseOk === 1 || row.conditionCaseOk === true,
+    cameraOk: row.conditionCameraOk === 1 || row.conditionCameraOk === true,
+    impactSigns: row.conditionImpactSigns === 1 || row.conditionImpactSigns === true,
+    liquidDamageSigns: row.conditionLiquidDamageSigns === 1 || row.conditionLiquidDamageSigns === true,
+  },
+  supportEntryData: {
+    entryDate: row.entryDate ? new Date(row.entryDate).getTime() : undefined,
+    entryMethod: row.entryMethod || undefined,
+    receivedBy: row.receivedBy || undefined,
+    priority: row.priority || undefined,
+    estimatedDeadline: row.estimatedDeadline ? new Date(row.estimatedDeadline).getTime() : undefined,
+  },
+  loanerDevice: {
+    hasLoaner: row.hasLoanerDevice === 1 || row.hasLoanerDevice === true,
+    model: row.loanerModel || undefined,
+    imei: row.loanerImei || undefined,
+    deliveryDate: row.loanerDeliveryDate ? new Date(row.loanerDeliveryDate).getTime() : undefined,
+    liabilityTerm: row.liabilityTerm === 1 || row.liabilityTerm === true,
+  },
+  mediaFiles: {
+    entryVideo: row.entryVideo || undefined,
+    exitVideo: row.exitVideo || undefined,
+    deviceDocumentation: row.deviceDocumentation && typeof row.deviceDocumentation === 'string' ? JSON.parse(row.deviceDocumentation) : row.deviceDocumentation || undefined,
+    additionalDocuments: row.additionalDocuments && typeof row.additionalDocuments === 'string' ? JSON.parse(row.additionalDocuments) : row.additionalDocuments || undefined,
+  },
+  accessories: row.accessories,
+  observations: row.observations,
+  purchaseDate: row.purchaseDate ? new Date(row.purchaseDate).getTime() : undefined,
+  warrantyPeriodMonths: row.warrantyPeriodMonths,
+  warrantyEndDate: row.warrantyEndDate ? new Date(row.warrantyEndDate).getTime() : undefined,
+  supplierId: row.supplierId,
+  supplierName: row.supplierName,
+  stockEntryDate: row.stockEntryDate ? new Date(row.stockEntryDate).getTime() : undefined,
+  supplierWarrantyMonths: row.supplierWarrantyMonths,
+  supplierWarrantyEndDate: row.supplierWarrantyEndDate ? new Date(row.supplierWarrantyEndDate).getTime() : undefined,
+});
+
 // GET /api/devices
 router.get('/', async (req, res) => {
   try {
@@ -22,7 +74,7 @@ router.get('/', async (req, res) => {
         supplier_warranty_months as supplierWarrantyMonths, supplier_warranty_end_date as supplierWarrantyEndDate
        FROM devices ORDER BY created_at DESC`
     );
-    res.json({ devices: rows });
+    res.json({ devices: (rows as any[]).map(mapDeviceRow) });
   } catch (error) {
     console.error('Erro ao buscar dispositivos:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -49,7 +101,7 @@ router.get('/customer/:customerId', async (req, res) => {
        FROM devices WHERE customer_id = ?`,
       [req.params.customerId]
     );
-    res.json({ devices: rows });
+    res.json({ devices: (rows as any[]).map(mapDeviceRow) });
   } catch (error) {
     console.error('Erro ao buscar dispositivos do cliente:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -76,11 +128,11 @@ router.get('/:id', async (req, res) => {
        FROM devices WHERE id = ?`,
       [req.params.id]
     );
-    const devices = rows as any[];
-    if (devices.length === 0) {
+    const devicesRow = rows as any[];
+    if (devicesRow.length === 0) {
       return res.status(404).json({ error: 'Dispositivo não encontrado' });
     }
-    res.json({ device: devices[0] });
+    res.json({ device: mapDeviceRow(devicesRow[0]) });
   } catch (error) {
     console.error('Erro ao buscar dispositivo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -154,13 +206,13 @@ router.put('/:id', async (req, res) => {
        WHERE id = ?`,
       [type ?? null, brand ?? null, model ?? null, imeiOrSerial || null, color || null, storage || null, serialNumber || null,
       screenPassword || null, batteryHealth || null, isReturn ?? false,
-      conditionOnArrival?.screenOk || null, conditionOnArrival?.caseOk || null, conditionOnArrival?.cameraOk || null,
-      conditionOnArrival?.impactSigns || null, conditionOnArrival?.liquidDamageSigns || null,
+      conditionOnArrival?.screenOk ?? null, conditionOnArrival?.caseOk ?? null, conditionOnArrival?.cameraOk ?? null,
+      conditionOnArrival?.impactSigns ?? null, conditionOnArrival?.liquidDamageSigns ?? null,
       supportEntryData?.entryDate ? new Date(supportEntryData.entryDate) : null,
       supportEntryData?.entryMethod || null, supportEntryData?.receivedBy || null, supportEntryData?.priority || null,
       supportEntryData?.estimatedDeadline ? new Date(supportEntryData.estimatedDeadline) : null,
-      loanerDevice?.hasLoaner || null, loanerDevice?.model || null, loanerDevice?.imei || null,
-      loanerDevice?.deliveryDate ? new Date(loanerDevice.deliveryDate) : null, loanerDevice?.liabilityTerm || null,
+      loanerDevice?.hasLoaner ?? null, loanerDevice?.model || null, loanerDevice?.imei || null,
+      loanerDevice?.deliveryDate ? new Date(loanerDevice.deliveryDate) : null, loanerDevice?.liabilityTerm ?? null,
       mediaFiles?.entryVideo || null, mediaFiles?.exitVideo || null,
       mediaFiles?.deviceDocumentation ? JSON.stringify(mediaFiles.deviceDocumentation) : null,
       mediaFiles?.additionalDocuments ? JSON.stringify(mediaFiles.additionalDocuments) : null,
