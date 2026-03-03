@@ -46,8 +46,8 @@ const Dashboard: React.FC<DashboardProps> = ({ tickets, onViewTicket }) => {
         TicketStatus.CANCELADO
       ].includes(t.status) && getTicketAgeDays(t.createdAt) >= 15
     ).length,
-    today: tickets.filter(t => new Date(t.createdAt).toDateString() === new Date().toDateString()).length,
-    month: tickets.filter(t => new Date(t.createdAt).getMonth() === new Date().getMonth()).length,
+    today: tickets.filter(t => t.createdAt && new Date(t.createdAt).toDateString() === new Date().toDateString()).length,
+    month: tickets.filter(t => t.createdAt && new Date(t.createdAt).getMonth() === new Date().getMonth()).length,
   };
 
   const criticalTickets = tickets
@@ -154,12 +154,12 @@ const Dashboard: React.FC<DashboardProps> = ({ tickets, onViewTicket }) => {
                   </div>
                   <div className="flex flex-col items-end shrink-0 ml-4">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase mb-1 border ${[
-                        TicketStatus.PRONTO,
-                        TicketStatus.AGUARDANDO_RETIRADA,
-                        TicketStatus.SAIU_PARA_ENTREGA,
-                        TicketStatus.ENTREGUE,
-                        TicketStatus.TROCA_REALIZADA
-                      ].includes(ticket.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'
+                      TicketStatus.PRONTO,
+                      TicketStatus.AGUARDANDO_RETIRADA,
+                      TicketStatus.SAIU_PARA_ENTREGA,
+                      TicketStatus.ENTREGUE,
+                      TicketStatus.TROCA_REALIZADA
+                    ].includes(ticket.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-200'
                       }`}>
                       {ticket.status}
                     </span>

@@ -299,7 +299,7 @@ const FinancialView: React.FC = () => {
                                             <tr key={transaction.id} className="hover:bg-slate-50/50 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <p className="text-sm font-medium text-slate-700">
-                                                        {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                                                        {transaction.date ? new Date(transaction.date).toLocaleDateString('pt-BR') : '-'}
                                                     </p>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -378,7 +378,7 @@ const FinancialView: React.FC = () => {
                                         return (
                                             <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <p className="text-sm text-slate-700">{new Date(log.createdAt).toLocaleString('pt-BR')}</p>
+                                                    <p className="text-sm text-slate-700">{log.createdAt ? new Date(log.createdAt).toLocaleString('pt-BR') : '-'}</p>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <p className="text-sm font-bold text-slate-800">{log.userName}</p>

@@ -777,8 +777,8 @@ const TicketList: React.FC<TicketListProps> = ({
                     <input
                       type="date"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
-                      value={new Date(formData.deviceSupportEntryData.entryDate).toISOString().split('T')[0]}
-                      onChange={e => setFormData({ ...formData, deviceSupportEntryData: { ...formData.deviceSupportEntryData, entryDate: new Date(e.target.value).getTime() } })}
+                      value={formData.deviceSupportEntryData.entryDate && !isNaN(formData.deviceSupportEntryData.entryDate) ? new Date(formData.deviceSupportEntryData.entryDate).toISOString().split('T')[0] : ''}
+                      onChange={e => setFormData({ ...formData, deviceSupportEntryData: { ...formData.deviceSupportEntryData, entryDate: e.target.value ? new Date(e.target.value).getTime() : 0 } })}
                     />
                   </div>
                   <div>
@@ -811,7 +811,7 @@ const TicketList: React.FC<TicketListProps> = ({
                     <input
                       type="date"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none"
-                      value={formData.deviceSupportEntryData.estimatedDeadline ? new Date(formData.deviceSupportEntryData.estimatedDeadline).toISOString().split('T')[0] : ''}
+                      value={formData.deviceSupportEntryData.estimatedDeadline && !isNaN(new Date(formData.deviceSupportEntryData.estimatedDeadline).getTime()) ? new Date(formData.deviceSupportEntryData.estimatedDeadline).toISOString().split('T')[0] : ''}
                       onChange={e => setFormData({ ...formData, deviceSupportEntryData: { ...formData.deviceSupportEntryData, estimatedDeadline: e.target.value } })}
                     />
                   </div>

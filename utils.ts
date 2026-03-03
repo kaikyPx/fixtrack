@@ -3,25 +3,34 @@ export const formatPhone = (phone: string) => {
   return phone.replace(/\D/g, '').replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
 };
 
-export const formatDate = (timestamp: number) => {
+export const formatDate = (timestamp?: number) => {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(new Date(timestamp));
+  }).format(date);
 };
 
-export const formatDateOnly = (timestamp: number) => {
+export const formatDateOnly = (timestamp?: number) => {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
-  }).format(new Date(timestamp));
+  }).format(date);
 };
 
-export const getTicketAgeDays = (createdAt: number) => {
+export const getTicketAgeDays = (createdAt?: number) => {
+  if (!createdAt) return 0;
+  const date = new Date(createdAt);
+  if (isNaN(date.getTime())) return 0;
   const diffTime = Math.abs(Date.now() - createdAt);
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };

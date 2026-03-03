@@ -5,7 +5,9 @@ import { Ticket, Customer, Device, User, TimelineEntry } from '../types';
 
 function formatDateBR(timestamp?: number): string {
   if (!timestamp) return '___/___/______';
-  return new Date(timestamp).toLocaleDateString('pt-BR');
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '___/___/______';
+  return d.toLocaleDateString('pt-BR');
 }
 
 function formatCPF(cpf?: string): string {

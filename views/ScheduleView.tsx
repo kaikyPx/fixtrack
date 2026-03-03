@@ -200,17 +200,17 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ customers, tickets, current
                                 {/* Date/Time Badge */}
                                 <div className="flex flex-col items-center justify-center bg-slate-50 rounded-2xl p-3 min-w-[100px] border border-slate-100">
                                     <span className="text-xs font-bold text-slate-400 uppercase">
-                                        {new Date(schedule.scheduledAt).toLocaleDateString('pt-BR', { weekday: 'short' })}
+                                        {schedule.scheduledAt ? new Date(schedule.scheduledAt).toLocaleDateString('pt-BR', { weekday: 'short' }) : '-'}
                                     </span>
                                     <span className="text-2xl font-black text-slate-800">
-                                        {new Date(schedule.scheduledAt).getDate()}
+                                        {schedule.scheduledAt ? new Date(schedule.scheduledAt).getDate() : '-'}
                                     </span>
                                     <span className="text-xs font-semibold text-slate-500">
-                                        {new Date(schedule.scheduledAt).toLocaleDateString('pt-BR', { month: 'short' })}
+                                        {schedule.scheduledAt ? new Date(schedule.scheduledAt).toLocaleDateString('pt-BR', { month: 'short' }) : '-'}
                                     </span>
                                     <div className="mt-2 flex items-center text-blue-600 font-bold text-sm bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
                                         <Clock size={12} className="mr-1" />
-                                        {new Date(schedule.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        {schedule.scheduledAt ? new Date(schedule.scheduledAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                     </div>
                                 </div>
 
